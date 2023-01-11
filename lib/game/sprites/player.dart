@@ -9,18 +9,11 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 
 import '../doodle_dash.dart';
+
 // Core gameplay: Import sprites.dart
 import 'sprites.dart';
 
-enum PlayerState {
-  left,
-  right,
-  center,
-  rocket,
-  nooglerCenter,
-  nooglerLeft,
-  nooglerRight
-}
+enum PlayerState { left, right, center, rocket, nooglerCenter, nooglerLeft, nooglerRight }
 
 class Player extends SpriteGroupComponent<PlayerState>
     with HasGameRef<DoodleDash>, KeyboardHandler, CollisionCallbacks {
@@ -38,9 +31,11 @@ class Player extends SpriteGroupComponent<PlayerState>
   final int movingLeftInput = -1;
   final int movingRightInput = 1;
   Vector2 _velocity = Vector2.zero();
+
   bool get isMovingDown => _velocity.y > 0;
   Character character;
   double jumpSpeed;
+
   // Core gameplay: Add _gravity property
   final double _gravity = 9;
 
@@ -111,7 +106,12 @@ class Player extends SpriteGroupComponent<PlayerState>
     _hAxisInput = 0;
 
     // Add a Player to the game: Add logic for moving left
-    current = PlayerState.left;
+    if (isWearingHat) {
+      current = PlayerState.nooglerLeft;
+    } else if (!hasPowerup) {
+      current = PlayerState.left;
+    }
+
     _hAxisInput += movingLeftInput;
   }
 
@@ -119,7 +119,11 @@ class Player extends SpriteGroupComponent<PlayerState>
     _hAxisInput = 0;
 
     // Add a Player to the game: Add logic for moving right
-    current = PlayerState.right;
+    if (isWearingHat) {
+      current = PlayerState.nooglerRight;
+    } else if (!hasPowerup) {
+      current = PlayerState.right;
+    }
     _hAxisInput += movingRightInput;
   }
 
@@ -128,17 +132,25 @@ class Player extends SpriteGroupComponent<PlayerState>
   }
 
   // Powerups: Add hasPowerup getter
+  bool get hasPowerup =>
+      current == PlayerState.rocket ||
+      current == PlayerState.nooglerLeft ||
+      current == PlayerState.nooglerRight ||
+      current == PlayerState.nooglerCenter;
 
   // Powerups: Add isInvincible getter
+  bool get isInvincible => current == PlayerState.rocket;
 
   // Powerups: Add isWearingHat getter
+  bool get isWearingHat =>
+      current == PlayerState.nooglerLeft || current == PlayerState.nooglerRight || current == PlayerState.nooglerCenter;
 
   // Core gameplay: Override onCollision callback
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
 
-    if (other is EnemyPlatform) {
+    if (other is EnemyPlatform && !isInvincible) {
       gameRef.onLose();
       return;
     }
@@ -158,6 +170,20 @@ class Player extends SpriteGroupComponent<PlayerState>
         other.breakPlatform();
         return;
       }
+    }
+    if (!hasPowerup && other is Rocket) {
+      current = PlayerState.rocket;
+      other.removeFromParent();
+      jump(specialJumpSpeed: jumpSpeed * other.jumpSpeedMultiplier);
+      return;
+    } else if (!hasPowerup && other is NooglerHat) {
+      if (current == PlayerState.center) current = PlayerState.nooglerCenter;
+      if (current == PlayerState.left) current = PlayerState.nooglerLeft;
+      if (current == PlayerState.right) current = PlayerState.nooglerRight;
+      other.removeFromParent();
+      _removePowerupAfterTime(other.activeLengthInMS);
+      jump(specialJumpSpeed: jumpSpeed * other.jumpSpeedMultiplier);
+      return;
     }
   }
 
@@ -192,15 +218,11 @@ class Player extends SpriteGroupComponent<PlayerState>
     // Load & configure sprite assets
     final left = await gameRef.loadSprite('game/${character.name}_left.png');
     final right = await gameRef.loadSprite('game/${character.name}_right.png');
-    final center =
-        await gameRef.loadSprite('game/${character.name}_center.png');
+    final center = await gameRef.loadSprite('game/${character.name}_center.png');
     final rocket = await gameRef.loadSprite('game/rocket_4.png');
-    final nooglerCenter =
-        await gameRef.loadSprite('game/${character.name}_hat_center.png');
-    final nooglerLeft =
-        await gameRef.loadSprite('game/${character.name}_hat_left.png');
-    final nooglerRight =
-        await gameRef.loadSprite('game/${character.name}_hat_right.png');
+    final nooglerCenter = await gameRef.loadSprite('game/${character.name}_hat_center.png');
+    final nooglerLeft = await gameRef.loadSprite('game/${character.name}_hat_left.png');
+    final nooglerRight = await gameRef.loadSprite('game/${character.name}_hat_right.png');
 
     sprites = <PlayerState, Sprite>{
       PlayerState.left: left,
