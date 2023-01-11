@@ -18,8 +18,7 @@ import '../doodle_dash.dart';
 /// Many platforms only need one Sprite, so [T] will be an enum that looks
 /// something like: `enum { only }`
 
-abstract class Platform<T> extends SpriteGroupComponent<T>
-    with HasGameRef<DoodleDash>, CollisionCallbacks {
+abstract class Platform<T> extends SpriteGroupComponent<T> with HasGameRef<DoodleDash>, CollisionCallbacks {
   final hitbox = RectangleHitbox();
   bool isMoving = false;
 
@@ -90,9 +89,7 @@ class NormalPlatform extends Platform<NormalPlatformState> {
 
     String randSprite = spriteOptions.keys.elementAt(randSpriteIndex);
 
-    sprites = {
-      NormalPlatformState.only: await gameRef.loadSprite('game/$randSprite.png')
-    };
+    sprites = {NormalPlatformState.only: await gameRef.loadSprite('game/$randSprite.png')};
 
     current = NormalPlatformState.only;
 
@@ -131,13 +128,13 @@ enum SpringState { down, up }
 
 // More on Platforms: Add SpringBoard Platform class
 class SpringBoard extends Platform<SpringState> {
-  SpringBoard({ super.position });
+  SpringBoard({super.position});
 
   @override
   Future<void>? onLoad() async {
     await super.onLoad();
 
-    sprites = <SpringState, Sprite> {
+    sprites = <SpringState, Sprite>{
       SpringState.down: await gameRef.loadSprite('game/platform_trampoline_down.png'),
       SpringState.up: await gameRef.loadSprite('game/platform_trampoline_up.png'),
     };
@@ -167,5 +164,21 @@ class SpringBoard extends Platform<SpringState> {
 }
 
 // Losing the game: Add EnemyPlatformState Enum
+enum EnemyPlatformState { only }
 
 // Losing the game: Add EnemyPlatform class
+class EnemyPlatform extends Platform<EnemyPlatformState> {
+  EnemyPlatform({super.position});
+
+  @override
+  Future<void>? onLoad() async {
+    var randBool = Random().nextBool();
+    var enemySprite = randBool ? 'enemy_trash_can' : 'enemy_error';
+
+    sprites = <EnemyPlatformState, Sprite>{EnemyPlatformState.only: await gameRef.loadSprite('game/$enemySprite.png')};
+
+    current = EnemyPlatformState.only;
+
+    return super.onLoad();
+  }
+}
